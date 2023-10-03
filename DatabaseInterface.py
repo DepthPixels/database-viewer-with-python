@@ -14,15 +14,14 @@ def connectToServer():
     return [failureOutput]
   
   
-def selectAllData(tableName, dbName):
+def selectAllData(tableName):
   try:
     conn = connectToServer()
     
     if conn[0] == successOutput:
       cursor = conn[1].cursor()
       
-    cursor.execute(f"USE {dbName}")
-    cursor.execute(f"SELECT * FROM {tableName};")
+    cursor.execute(f'''SELECT * FROM {tableName}''')
 
     result = cursor.fetchall()
     
@@ -31,34 +30,16 @@ def selectAllData(tableName, dbName):
  
   except:
     return [failureOutput]
-  
 
-def getDatabases():
+
+def getTables():
   try:
     conn = connectToServer()
     
     if conn[0] == successOutput:
       cursor = conn[1].cursor()
       
-    cursor.execute("SHOW DATABASES")
-    result = cursor.fetchall()
-    
-    conn[1].close()
-    return [successOutput, result]
- 
-  except:
-    return [failureOutput]
-  
-  
-def getTables(dbName):
-  try:
-    conn = connectToServer()
-    
-    if conn[0] == successOutput:
-      cursor = conn[1].cursor()
-      
-    cursor.execute(f"USE {dbName}")
-    cursor.execute("SHOW TABLES")
+    cursor.execute('''SELECT name FROM sqlite_schema WHERE type ='table' AND name NOT LIKE 'sqlite_%';''')
     result = cursor.fetchall()
     
     conn[1].close()
@@ -68,15 +49,14 @@ def getTables(dbName):
     return [failureOutput]
   
   
-def selectColumnData(tableName, dbName, columnName):
+def selectColumnData(tableName, columnName):
   try:
     conn = connectToServer()
     
     if conn[0] == successOutput:
       cursor = conn[1].cursor()
       
-    cursor.execute(f"USE {dbName}")
-    cursor.execute(f"SELECT {columnName} FROM {tableName};")
+    cursor.execute(f'''SELECT {columnName} FROM {tableName};''')
 
     result = cursor.fetchall()
     
@@ -87,14 +67,13 @@ def selectColumnData(tableName, dbName, columnName):
     return [failureOutput]
   
   
-def executeQuery(dbName, query):
+def executeQuery(query):
   try:
     conn = connectToServer()
     
     if conn[0] == successOutput:
       cursor = conn[1].cursor()
     
-    cursor.execute(f"USE {dbName}")
     cursor.execute(query)
     
     conn[1].commit()
@@ -106,17 +85,22 @@ def executeQuery(dbName, query):
     return failureOutput
   
   
-def populateInitially():
+def resetDatabase():
   try:
     conn = connectToServer()
     
     if conn[0] == successOutput:
       cursor = conn[1].cursor()
-      
-    cursor.execute("CREATE DATABASE IF NOT EXISTS itemproject")
-    cursor.execute("USE itemproject")
-    cursor.execute("DROP TABLE IF EXISTS items")
-    cursor.execute("CREATE TABLE items(itemID INTEGER PRIMARY KEY AUTOINCREMENT, itemName VARCHAR(40), )")
+    
+    cursor.execute('''DROP TABLE IF EXISTS items''')
+    cursor.execute('''CREATE TABLE items(itemID INTEGER PRIMARY KEY AUTOINCREMENT, itemName VARCHAR(40) NOT NULL, itemStock INTEGER NOT NULL)''')
+    cursor.execute('''INSERT INTO items (itemName, itemStock) VALUES ('Apples', 200)''')
+    cursor.execute('''INSERT INTO items (itemName, itemStock) VALUES ('Bananas', 100)''')
+    cursor.execute('''INSERT INTO items (itemName, itemStock) VALUES ('Oranges', 50)''')
+    
+    conn[1].commit()
+    
+    conn[1].close()
       
     return successOutput
   

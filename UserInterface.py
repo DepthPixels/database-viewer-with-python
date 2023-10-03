@@ -35,12 +35,15 @@ class MainMenu(QWidget):
     self.databaseViewButton.clicked.connect(self.openDatabaseView)
     self.itemChooserButton = QPushButton("Choose Items")
     self.itemChooserButton.clicked.connect(self.openItemChooserView)
+    self.resetButton = QPushButton("Initialize/Reset Database")
+    self.resetButton.clicked.connect(self.resetDatabase)
     
     
     # Layout
     self.outerVLayout = QVBoxLayout()
     self.outerVLayout.addWidget(self.databaseViewButton)
     self.outerVLayout.addWidget(self.itemChooserButton)
+    self.outerVLayout.addWidget(self.resetButton)
     
     self.setLayout(self.outerVLayout)
     
@@ -53,6 +56,15 @@ class MainMenu(QWidget):
   def openItemChooserView(self):
     self.w = ItemChooserWindow()
     self.w.show()
+    
+  
+  def resetDatabase(self):
+    result = DatabaseInterface.resetDatabase()
+    
+    notifDialog = QMessageBox(self)
+    notifDialog.setWindowTitle("Status")
+    notifDialog.setText(result)
+    notifDialog.exec()
     
     
 
@@ -72,17 +84,8 @@ class DataBaseViewWindow(QMainWindow):
     
     
     # Test Boxes
-    self.dbName = QComboBox()
-    dbOutput = DatabaseInterface.getDatabases()
-    dbList = []
-    if dbOutput[0] == DatabaseInterface.successOutput:
-      for item in dbOutput[1]:
-        dbList.append(item[0])
-      self.dbName.addItems(dbList)
-    self.dbName.currentTextChanged.connect(self.updateTableBox)
-    
     self.tableName = QComboBox()
-    tableOutput = DatabaseInterface.getTables(self.dbName.currentText())
+    tableOutput = DatabaseInterface.getTables()
     tableList = []
     if tableOutput[0] == DatabaseInterface.successOutput:
       for item in tableOutput[1]:
@@ -103,7 +106,6 @@ class DataBaseViewWindow(QMainWindow):
     
     # Form
     self.formLayout = QFormLayout()
-    self.formLayout.addRow("Database:", self.dbName)
     self.formLayout.addRow("Table:", self.tableName)
     
     
@@ -120,7 +122,7 @@ class DataBaseViewWindow(QMainWindow):
       
   
   def updateTable(self):
-    result = DatabaseInterface.selectAllData(self.tableName.currentText(), self.dbName.currentText())
+    result = DatabaseInterface.selectAllData(self.tableName.currentText())
     
     
     if result[0] == DatabaseInterface.successOutput:
@@ -134,16 +136,6 @@ class DataBaseViewWindow(QMainWindow):
         
         for column_number, data in enumerate(row_data):
           self.tableWidget.setItem(row_number, column_number, QTableWidgetItem(str(data)))
-          
-  
-  def updateTableBox(self):
-    self.tableName.clear()
-    tableOutput = DatabaseInterface.getTables(self.dbName.currentText())
-    tableList = []
-    if tableOutput[0] == DatabaseInterface.successOutput:
-      for item in tableOutput[1]:
-        tableList.append(item[0])
-      self.tableName.addItems(tableList)
               
     
 
@@ -159,7 +151,7 @@ class ItemChooserWindow(QWidget):
     
     # Combo Boxes
     self.itemComboBox = QComboBox()
-    itemOutput = DatabaseInterface.selectColumnData("items", "itemproject", "itemName")
+    itemOutput = DatabaseInterface.selectColumnData("items", "itemName")
     itemList = []
     if itemOutput[0] == DatabaseInterface.successOutput:
       for item in itemOutput[1]:
@@ -195,9 +187,9 @@ class ItemChooserWindow(QWidget):
     itemName = self.itemComboBox.currentText()
     itemQuantity = self.itemQuantitySpinner.value()
     
-    query = f"UPDATE items SET itemStock = itemStock - {itemQuantity} WHERE itemName = '{itemName}'"
+    query = f'''UPDATE items SET itemStock = itemStock - {itemQuantity} WHERE itemName = "{itemName}"'''
     
-    result = DatabaseInterface.executeQuery("itemproject", query)
+    result = DatabaseInterface.executeQuery(query)
     
     notifDialog = QMessageBox(self)
     notifDialog.setWindowTitle("Status")
